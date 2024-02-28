@@ -5,6 +5,7 @@ import scipy.optimize as optimize
 import matplotlib.pyplot as plt
 
 #Funcoes que serao ultilizadas
+st.set_page_config(layout="wide")
 
 def bond_ytm(price, par, T, coup, freq=2, guess=0.05):
     freq = float(freq)
@@ -29,21 +30,10 @@ def bond_price(par, T, ytm, coup, freq=2):
 
 
 
-def bond_mod_duration(price, par, T, coup, freq, dy=0.01):
-    ytm = bond_ytm(price, par, T, coup, freq)
-    
-    ytm_minus = ytm - dy    
-    price_minus = bond_price(par, T, ytm_minus, coup, freq)
-    
-    ytm_plus = ytm + dy
-    price_plus = bond_price(par, T, ytm_plus, coup, freq)
-    
-    mduration = (price_minus-price_plus)/(2*price*dy)
-    return mduration 
 
 
 
-def bond_convexity(price, par, T, coup, freq, dy=0.01):
+def bond_convexity(price, par, T, coup, freq=2, dy=0.01):
     ytm = bond_ytm(price, par, T, coup, freq)
 
     ytm_minus = ytm - dy    
@@ -55,25 +45,38 @@ def bond_convexity(price, par, T, coup, freq, dy=0.01):
     convexity = (price_minus+price_plus-2*price)/(price*dy**2)
     return convexity
 
+def effective_duration(price, par, T, coup, freq=2, dy=0.01):
+    ytm = bond_ytm(price, par, T, coup)
+    
+    ytm_minus = ytm - dy   
+    price_minus = bond_price(par, T, ytm_minus, coup, freq)
+    
+    ytm_plus = ytm + dy
+    price_plus = bond_price(par, T, ytm_plus, coup, freq)
+    
+    mduration = (price_minus-price_plus)/(2*price*dy)
+    return mduration
 
 
 class bonds:
     def __init__(self):
         self.par_value = 1000
-        self.coupon = np.random.randint(low=0, high= self.par_value*0.05)
+        self.coupon = np.random.randint(low=0, high= 15)
         self.maturity = np.random.randint(2024, 2033)
         self.vencimento = self.maturity - 2023
         ano_maturidade = str(self.maturity)
+        
+        
+        
         
         for index, row in cdi.iterrows():
             if row['Ano'] == ano_maturidade:
                 self.ytm_init = row['CDI Futuro']
                 break
         
-        self.durationma
-
-    
         self.pv = bond_price(self.par_value, self.vencimento,self.ytm_init , self.coupon)
+        self.efecdu = effective_duration(self.pv, self.par_value, self.vencimento, self.coupon)
+        self.convex = bond_convexity(self.pv, self.par_value,self.vencimento ,self.coupon )
         
     def risco_buy(self):
         teste = np.random.randint(low=0, high= 3)
@@ -92,6 +95,44 @@ class bonds:
             self.ytm_init = self.ytm_init - np.random.uniform(low=self.ytm_init*0.1, high= self.ytm_init*0.2)
         elif teste == 2:
             self.ytm_init = self.ytm_init - np.random.uniform(low=self.ytm_init*0.2, high= self.ytm_init*0.3)
+        
+
+def create_bonds_buy():
+    data = []
+    for i in range(len(cdi["CDI Futuro"])):
+        bond = bonds()
+        bond.risco_buy()
+        title = f"Title {i+1}"
+        pv = round(bond.pv, 2)
+        ytm = round(bond.ytm_init*100, 2)
+        vencimento = (bond.vencimento)
+        cupom = round(bond.coupon, 2)
+        effec = (bond.efecdu)
+        convex = (bond.convex)
+        data.append({"Nome": title, "Valor Presente": pv, "YTM" : ytm, "Vencimento" : vencimento, "Taxa de Cupom" : cupom, "Duration Efetiva": effec, "Convexidade":convex})
+    df = pd.DataFrame(data)
+    df.set_index("Nome", inplace=True)
+    return df.sort_values(by="Vencimento", ascending=True)
+
+def create_bonds_sell():
+    data = []
+    for i in range(len(cdi["CDI Futuro"])):
+        bond = bonds()
+        bond.risco_sell()
+        title = f"Title {i+1}"
+        pv = round(bond.pv, 2)
+        ytm = round(bond.ytm_init*100, 2)
+        vencimento = (bond.vencimento)
+        cupom = (bond.coupon)
+        effec = (bond.efecdu)
+        convex = (bond.convex)
+        data.append({"Nome": title, "Valor Presente": pv, "YTM" : ytm, "Vencimento" : vencimento, "Taxa de Cupom" : cupom, "Duration Efetiva": effec, "Convexidade":convex})
+    df = pd.DataFrame(data)
+    df.set_index("Nome", inplace=True)
+    return df.sort_values(by="Vencimento", ascending=True)
+
+
+
 
 
 
@@ -135,9 +176,12 @@ st.line_chart(cdi.set_index('Ano'), y="CDI Futuro")
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("Carteira de titulos ativos")
+    st.dataframe(create_bonds_buy())
   
 with col2:
     st.subheader("Carteira de titulos passivos")
+    st.dataframe(create_bonds_sell())
+
    
 
 
