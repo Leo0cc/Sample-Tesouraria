@@ -30,6 +30,14 @@ def bond_price(par, T, ytm, coup, freq=2):
 
 
 
+def bond_macaulay_d():
+    pvcf = []
+    for i in range(1, 10):
+        pvcf.append("oi")
+    return pvcf
+
+
+
 
 
 
@@ -133,14 +141,6 @@ def create_bonds_sell():
 
 
 
-
-
-
-
-
-
-
-
 st.title("Simulação de Titulos")
 
 #Geracao das taxas futuras ultilizadas na criacao dos titulos
@@ -170,17 +170,17 @@ st.line_chart(cdi.set_index('Ano'), y="CDI Futuro")
 #Geracao de titulos a partir da curva de juros, com diferentes niveis de risco
 
 
-
-
+assets = create_bonds_buy()
+liabilities = create_bonds_sell()
 
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("Carteira de titulos ativos")
-    st.dataframe(create_bonds_buy())
+    st.dataframe(assets)
   
 with col2:
     st.subheader("Carteira de titulos passivos")
-    st.dataframe(create_bonds_sell())
+    st.dataframe(liabilities)
 
    
 
